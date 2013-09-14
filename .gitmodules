@@ -1,0 +1,3 @@
+[submodule "quality-control/js/nvd3"]
+	path = quality-control/js/nvd3
+	url = git://github.com/novus/nvd3.git
