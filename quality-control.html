@@ -5,12 +5,10 @@
     <meta http-equiv="X-UA-Compatible" content="chrome=1">
     <meta http-equiv="X-UA-Compatible" content="IE=10"/>
     <title>Quality Control Report Example by Ishtiaq Ahmad</title>
+    <link href="http://netdna.bootstrapcdn.com/twitter-bootstrap/2.3.2/css/bootstrap-combined.min.css" rel="stylesheet">
+    <link rel="stylesheet" media="screen" href="https://cdnjs.cloudflare.com/ajax/libs/nvd3/1.0.0-beta/nv.d3.css" type="text/css">
     <script src="http://code.jquery.com/jquery-1.10.1.min.js"></script>
-    <script src="http://code.jquery.com/jquery-migrate-1.2.1.min.js"></script>
-    <link href="//netdna.bootstrapcdn.com/twitter-bootstrap/2.3.2/css/bootstrap-combined.min.css" rel="stylesheet">
-    <script src="//netdna.bootstrapcdn.com/twitter-bootstrap/2.3.2/js/bootstrap.min.js"></script>
-
-<link rel="stylesheet" media="screen" href="https://cdnjs.cloudflare.com/ajax/libs/nvd3/1.0.0-beta/nv.d3.css" type="text/css">
+    <script src="http://netdna.bootstrapcdn.com/twitter-bootstrap/2.3.2/js/bootstrap.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.3.3/d3.min.js" charset="utf-8"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/nvd3/1.0.0-beta/nv.d3.js"></script>
     <script src="javascripts/modifyMultiChart.js" charset="utf-8"></script>
@@ -93,12 +91,27 @@
 
      var url = "https://dl.dropboxusercontent.com/s/afaxphho9v2rrhf/Dashboard.json";
      //var url='data/metabolomics.json';
-     d3.json(url, function (error, jsonData) {
-     if (error) return console.warn(error);
-     else {
-     callbackGrid(jsonData);
-     }
-     });
+     // d3.json(url, function (error, jsonData) {
+     // if (error) return console.warn(error);
+     // else {
+     // callbackGrid(jsonData);
+     // }
+     // });
+
+    $(function () {
+        $('#pleaseWaitDialog').modal('show')
+    });
+    
+    $.getJSON( url, function (jsonData) {
+            callbackGrid(jsonData);
+     })
+     .done(function() {
+        $('#pleaseWaitDialog').modal('hide');
+    })
+     .fail(function( jqxhr, textStatus, error ) {
+        var err = textStatus + ", " + error;
+        console.log( "Request Failed: " + err );
+    });
     
     function callbackGrid(matlabX) {
         jsonObj = matlabX;
@@ -115,7 +128,7 @@
         });
 
         drawVisibleCharts();
-        //drawISAreaMultiChart();
+        drawISAreaMultiChart();
         //drawQcFitMultiChart();
     }
 
@@ -638,6 +651,31 @@
                                             <button type="submit" class="btn btn-warning">Save</button>
                                         </fieldset>
                                     </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Wait Modal -->
+            <div id="pleaseWaitDialog" class="modal hide fade" tabindex="-2" role="dialog"
+                 aria-labelledby="pleaseWaitDialog"
+                 aria-hidden="true">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
+                    <h4>Processing...</h4>
+                </div>
+
+                <div class="modal-body">
+                    <div class="row-fluid">
+                        <div class="tab-content">
+                            <div class="tab-pane active">
+                                <div class="control-group">
+                                    <div class="progress progress-striped active">
+                                        <div class="bar" style="width: 100%;"></div>
+                                    </div>
+                                    <p>Please wait!! we are loading a large Metabolites / Compound list</p>
                                 </div>
                             </div>
                         </div>
