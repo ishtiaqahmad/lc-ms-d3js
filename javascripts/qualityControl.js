@@ -277,7 +277,7 @@ var shapes = ['circle', 'cross', 'triangle-up', 'triangle-down', 'diamond', 'squ
             }).appendTo('#DashboardChartArea').prepend('<svg/>');
 
             $('#' + chartId).prepend("<div class='row'>" +
-                    "<div class='span10'>" +
+                    "<div class='span00 text-center'>" +
                     "<p><span class='label label-important'>" + setting.key + " Chart</span></p>" +
                     "</div></div>");
 
