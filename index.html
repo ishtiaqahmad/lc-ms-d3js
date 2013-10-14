@@ -6,9 +6,9 @@
     <title>Tandem Mass Spectrometry Analysis using d3 by Ishtiaq Ahmad</title>
     <link rel="stylesheet" type="text/css" href="stylesheets/styles.css" media="screen">
     <link rel="stylesheet" type="text/css" href="stylesheets/pygment_trac.css" media="screen" />
+    <link href="stylesheets/nv.d3.css" rel="stylesheet" media="screen" type="text/css">
     <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
     <link href="//netdna.bootstrapcdn.com/twitter-bootstrap/2.3.2/css/bootstrap-combined.min.css" rel="stylesheet" media="screen" type="text/css">
-    <link href="//cdnjs.cloudflare.com/ajax/libs/nvd3/1.0.0-beta/nv.d3.css" rel="stylesheet" media="screen" type="text/css">
     <style>
     .dashboardChart svg {
         height: 500px;
@@ -16,10 +16,6 @@
 
     .dashboardChart {
         margin: 0;
-    }
-
-    svg {
-        height: 500px;
     }
 
     #ISAreaMultiChart svg {
@@ -34,6 +30,43 @@
         margin: 0px;
         min-width: 100px;
         min-height: 100px;
+    }
+    
+    .highlight {
+        stroke-width: 7px;
+        stroke: #f00;
+        fill-opacity: .95 !important;
+        stroke-opacity: .95 !important;
+    }
+
+    circle {
+        -webkit-transition: fill-opacity 250ms linear;
+    }
+
+    .selecting circle {
+        fill-opacity: .2;
+    }
+
+    .selecting circle.selected {
+        stroke: #f00;
+    }
+
+    .resize path {
+        fill: #666;
+        fill-opacity: .8;
+        stroke: #000;
+        stroke-width: 1.5px;
+    }
+
+    .axis path, .axis line {
+        fill: none;
+        stroke: #000;
+        shape-rendering: crispEdges;
+    }
+
+    .brush .extent {
+        fill-opacity: .125;
+        shape-rendering: crispEdges;
     }
     </style>
     <!--[if lt IE 9]>
@@ -174,8 +207,8 @@
     <script src="javascripts/scale.fix.js"></script>
     <script src="//code.jquery.com/jquery-1.10.1.min.js"></script>
     <script src="//netdna.bootstrapcdn.com/twitter-bootstrap/2.3.2/js/bootstrap.min.js"></script>
-    <script src="//cdnjs.cloudflare.com/ajax/libs/d3/3.3.3/d3.min.js" charset="utf-8"></script>
-    <script src="//cdnjs.cloudflare.com/ajax/libs/nvd3/1.0.0-beta/nv.d3.js"></script>
+    <script src="javascripts/d3.v3.js" charset="utf-8"></script>
+    <script src="javascripts/nv.d3.min.js"></script>
     <script src="javascripts/modifyMultiChart.js" charset="utf-8"></script>
     <script src="javascripts/qualityControl.js" charset="utf-8"></script>
     <script type="text/javascript">
@@ -187,7 +220,14 @@
      // });
 
     $(function () {
-        $('#pleaseWaitDialog').modal('show')
+        $('#pleaseWaitDialog').modal('show');
+        $("#compound").change(function () {
+            var selectedValues = $('#compound').val();
+            drawVisibleCharts();
+            drawISAreaMultiChart();
+            drawQcFitMultiChart();
+            //drawFocusChart();
+        });
     });
     
     $.getJSON( url, function (jsonData) {
@@ -200,6 +240,26 @@
         var err = textStatus + ", " + error;
         console.log( "Request Failed: " + err );
     });
+
+    function callbackGrid(matlabX) {
+        jsonObj = matlabX;
+        if (jsonObj.Dashboard) {
+            jsonObj = jsonObj.Dashboard;
+        }
+        Dashboard = jsonObj;
+
+        var comboList = $("#compound");
+        $.each(Dashboard.metabolites, function (i, comp) {
+            comboList.append($("<option></option>")
+                    .attr("value", i)
+                    .text(comp.Name));
+        });
+
+        drawVisibleCharts();
+        drawISAreaMultiChart();
+        drawQcFitMultiChart();
+        $('#pleaseWaitDialog').modal('hide');
+    }
     </script>
   </body>
 </html>
