@@ -1,223 +1,244 @@
 <!doctype html>
 <html>
-  <head>
+<head>
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="chrome=1">
     <title>Tandem Mass Spectrometry Analysis using d3 by Ishtiaq Ahmad</title>
     <link rel="stylesheet" type="text/css" href="stylesheets/styles.css" media="screen">
-    <link rel="stylesheet" type="text/css" href="stylesheets/pygment_trac.css" media="screen" />
+    <link rel="stylesheet" type="text/css" href="stylesheets/pygment_trac.css" media="screen"/>
     <link href="stylesheets/nv.d3.css" rel="stylesheet" media="screen" type="text/css">
     <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
-    <link href="//netdna.bootstrapcdn.com/twitter-bootstrap/2.3.2/css/bootstrap-combined.min.css" rel="stylesheet" media="screen" type="text/css">
+    <link href="//netdna.bootstrapcdn.com/twitter-bootstrap/2.3.2/css/bootstrap-combined.min.css" rel="stylesheet"
+          media="screen" type="text/css">
     <style>
-    .dashboardChart svg {
-        height: 500px;
-    }
+        .dashboardChart svg {
+            height: 500px;
+        }
 
-    .dashboardChart {
-        margin: 0;
-    }
+        .dashboardChart {
+            margin: 0;
+        }
 
-    #ISAreaMultiChart svg {
-        height: 500px;
-        margin: 0px;
-        min-width: 100px;
-        min-height: 100px;
-    }
+        #ISAreaMultiChart svg {
+            height: 500px;
+            margin: 0px;
+            min-width: 100px;
+            min-height: 100px;
+        }
 
-    #QCfitMultiChart svg {
-        height: 500px;
-        margin: 0px;
-        min-width: 100px;
-        min-height: 100px;
-    }
-    
-    .highlight {
-        stroke-width: 7px;
-        stroke: #f00;
-        fill-opacity: .95 !important;
-        stroke-opacity: .95 !important;
-    }
+        #QCfitMultiChart svg {
+            height: 500px;
+            margin: 0px;
+            min-width: 100px;
+            min-height: 100px;
+        }
 
-    circle {
-        -webkit-transition: fill-opacity 250ms linear;
-    }
+        .highlight {
+            stroke-width: 7px;
+            stroke: #f00;
+            fill-opacity: .95 !important;
+            stroke-opacity: .95 !important;
+        }
 
-    .selecting circle {
-        fill-opacity: .2;
-    }
+        circle {
+            -webkit-transition: fill-opacity 250ms linear;
+        }
 
-    .selecting circle.selected {
-        stroke: #f00;
-    }
+        .selecting circle {
+            fill-opacity: .2;
+        }
 
-    .resize path {
-        fill: #666;
-        fill-opacity: .8;
-        stroke: #000;
-        stroke-width: 1.5px;
-    }
+        .selecting circle.selected {
+            stroke: #f00;
+        }
 
-    .axis path, .axis line {
-        fill: none;
-        stroke: #000;
-        shape-rendering: crispEdges;
-    }
+        .resize path {
+            fill: #666;
+            fill-opacity: .8;
+            stroke: #000;
+            stroke-width: 1.5px;
+        }
 
-    .brush .extent {
-        fill-opacity: .125;
-        shape-rendering: crispEdges;
-    }
+        .axis path, .axis line {
+            fill: none;
+            stroke: #000;
+            shape-rendering: crispEdges;
+        }
+
+        .brush .extent {
+            fill-opacity: .125;
+            shape-rendering: crispEdges;
+        }
     </style>
     <!--[if lt IE 9]>
     <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
     <![endif]-->
-  </head>
-  <body>
-    <div class="wrapper">
-      <header>
+</head>
+<body>
+<div class="wrapper">
+    <header>
         <h1>Tandem Mass Spectrometry Analysis using d3</h1>
+
         <p>Interactive LC-MS/MS analysis graphs/charts over the web</p>
 
-        <p class="view"><a href="https://github.com/ishtiaqahmad/lc-ms-d3js">View the Project on GitHub <small>ishtiaqahmad/lc-ms-d3js</small></a></p>
+        <p class="view"><a href="https://github.com/ishtiaqahmad/lc-ms-d3js">View the Project on GitHub
+            <small>ishtiaqahmad/lc-ms-d3js</small>
+        </a></p>
 
 
         <ul>
-          <li><a href="https://github.com/ishtiaqahmad/lc-ms-d3js/zipball/master">Download <strong>ZIP File</strong></a></li>
-          <li><a href="https://github.com/ishtiaqahmad/lc-ms-d3js/tarball/master">Download <strong>TAR Ball</strong></a></li>
-          <li><a href="https://github.com/ishtiaqahmad/lc-ms-d3js">View On <strong>GitHub</strong></a></li>
+            <li><a href="https://github.com/ishtiaqahmad/lc-ms-d3js/zipball/master">Download <strong>ZIP
+                File</strong></a></li>
+            <li><a href="https://github.com/ishtiaqahmad/lc-ms-d3js/tarball/master">Download <strong>TAR
+                Ball</strong></a></li>
+            <li><a href="https://github.com/ishtiaqahmad/lc-ms-d3js">View On <strong>GitHub</strong></a></li>
         </ul>
-      </header>
-      <section>
+    </header>
+    <section>
         <h3>
-<a name="welcome-to-github-pages" class="anchor" href="#welcome-to-github-pages"><span class="octicon octicon-link"></span></a>Welcome to Tandem Mass Spectrometry Analysis graphs</h3>
-<p>This is a Quality Control Report of Mass Spectrometry Analysis by analyzing Metabolites present in human samples. Some 20% of quality control sample(QCsampe), Blanks and Internal Standers (IS) was used to ensure the quality of analyte for recovery purposes. Area, Ratio and Retention Time correction was done using various statistical models like curve fitting, outliers detection etc.</p>
-<p class="view"><a href="quality-control.html"><strong>View this Quality Control Report in separate page</strong></a></p>
-      <div class="tabbable tabs-top">
-    <ul class="nav nav-tabs ulfloatleft liremovefloat">
-        <li class="active"><a href="#home" data-toggle="tab">Dashboard</a></li>
-    </ul>
+            <a name="welcome-to-github-pages" class="anchor" href="#welcome-to-github-pages"><span
+                    class="octicon octicon-link"></span></a>Welcome to Tandem Mass Spectrometry Analysis graphs</h3>
 
-    <div class="tab-content">
-        <div class="tab-pane fade in active" id="home">
-            <table>
-                <tr>
-                    <td style="padding: 5px;" align="right" valign="top" nowrap>Selected Metabolites/Compound :</td>
-                    <td>
-                        <select class="dropdown" name="compound" id="compound"/>
-                    </td>
-                </tr>
-                <tr>
-                    <td></td>
-                    <td></td>
-                </tr>
-            </table>
-            <a href="#advancedSettings" role="button" data-toggle="modal"
-               class="btn btn-warning pull-right">Settings</a>
+        <p>This is a Quality Control Report of Mass Spectrometry Analysis by analyzing Metabolites present in human
+            samples. Some 20% of quality control sample(QCsampe), Blanks and Internal Standers (IS) was used to ensure
+            the quality of analyte for recovery purposes. Area, Ratio and Retention Time correction was done using
+            various statistical models like curve fitting, outliers detection etc.</p>
 
-            <!-- Advanced Setting Modal -->
-            <div id="advancedSettings" class="modal hide fade" tabindex="-1" role="dialog"
-                 aria-labelledby="advancedSettings"
-                 aria-hidden="true">
-                <div class="modal-header">
-                    <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
-                    <ul class="nav nav-pills pull-right">
-                        <li class="active">
-                            <a href="#screenSetting" data-toggle="pill">Screen settings</a>
-                        </li>
-                    </ul>
-                    <h4>Multiple Graphs on the same screen</h4>
-                </div>
+        <p class="view"><a href="quality-control.html"><strong>View this Quality Control Report in separate
+            page</strong></a></p>
 
-                <div class="modal-body">
-                    <div class="row-fluid">
-                        <div class="tab-content">
-                            <div class="tab-pane active" id="screenSetting">
-                                <div class="control-group">
-                                    <form id="settingform" action="#" title="">
-                                        <fieldset>
-                                            <div class="controls controls-row">
-                                                <label class="checkbox">
-                                                    <input type="checkbox" id="showArea" checked> Area
-                                                </label>
-                                                <label class="checkbox">
-                                                    <input type="checkbox" id="showRT" checked> Retention Time
-                                                </label>
-                                                <label class="checkbox">
-                                                    <input type="checkbox" id="showRatioUnc"
-                                                           checked> Ratio (uncorrected)
-                                                </label>
-                                                <label class="checkbox">
-                                                    <input type="checkbox" id="showRatioQ" checked> Ratio (QC corrected)
-                                                </label>
-                                            </div>
-                                            <button type="submit" class="btn btn-warning">Save</button>
-                                        </fieldset>
-                                    </form>
-                                </div>
-                            </div>
+        <div class="tabbable tabs-top">
+            <ul class="nav nav-tabs ulfloatleft liremovefloat">
+                <li class="active"><a href="#home" data-toggle="tab">Dashboard</a></li>
+            </ul>
+
+            <div class="tab-content">
+                <div class="tab-pane fade in active" id="home">
+                    <table>
+                        <tr>
+                            <td style="padding: 5px;" align="right" valign="top" nowrap>Selected Metabolites/Compound
+                                :
+                            </td>
+                            <td>
+                                <select class="dropdown" name="compound" id="compound"/>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td></td>
+                            <td></td>
+                        </tr>
+                    </table>
+                    <a href="#advancedSettings" role="button" data-toggle="modal"
+                       class="btn btn-warning pull-right">Settings</a>
+
+                    <!-- Advanced Setting Modal -->
+                    <div id="advancedSettings" class="modal hide fade" tabindex="-1" role="dialog"
+                         aria-labelledby="advancedSettings"
+                         aria-hidden="true">
+                        <div class="modal-header">
+                            <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
+                            <ul class="nav nav-pills pull-right">
+                                <li class="active">
+                                    <a href="#screenSetting" data-toggle="pill">Screen settings</a>
+                                </li>
+                            </ul>
+                            <h4>Multiple Graphs on the same screen</h4>
                         </div>
-                    </div>
-                </div>
-            </div>
 
-            <!-- Wait Modal -->
-            <div id="pleaseWaitDialog" class="modal hide fade" tabindex="-2" role="dialog"
-                 aria-labelledby="pleaseWaitDialog"
-                 aria-hidden="true">
-                <div class="modal-header">
-                    <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
-                    <h4>Processing...</h4>
-                </div>
-
-                <div class="modal-body">
-                    <div class="row-fluid">
-                        <div class="tab-content">
-                            <div class="tab-pane active">
-                                <div class="control-group">
-                                    <div class="progress progress-striped active">
-                                        <div class="bar" style="width: 100%;"></div>
+                        <div class="modal-body">
+                            <div class="row-fluid">
+                                <div class="tab-content">
+                                    <div class="tab-pane active" id="screenSetting">
+                                        <div class="control-group">
+                                            <form id="settingform" action="#" title="">
+                                                <fieldset>
+                                                    <div class="controls controls-row">
+                                                        <label class="checkbox">
+                                                            <input type="checkbox" id="showArea" checked> Area
+                                                        </label>
+                                                        <label class="checkbox">
+                                                            <input type="checkbox" id="showRT" checked> Retention Time
+                                                        </label>
+                                                        <label class="checkbox">
+                                                            <input type="checkbox" id="showRatioUnc"
+                                                                   checked> Ratio (uncorrected)
+                                                        </label>
+                                                        <label class="checkbox">
+                                                            <input type="checkbox" id="showRatioQ" checked> Ratio (QC
+                                                            corrected)
+                                                        </label>
+                                                    </div>
+                                                    <button type="submit" class="btn btn-warning">Save</button>
+                                                </fieldset>
+                                            </form>
+                                        </div>
                                     </div>
-                                    <p>Please wait!! we are loading a large Metabolites / Compound list</p>
                                 </div>
                             </div>
                         </div>
                     </div>
+
+                    <!-- Wait Modal -->
+                    <div id="pleaseWaitDialog" class="modal hide fade" tabindex="-2" role="dialog"
+                         aria-labelledby="pleaseWaitDialog"
+                         aria-hidden="true">
+                        <div class="modal-header">
+                            <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
+                            <h4>Processing...</h4>
+                        </div>
+
+                        <div class="modal-body">
+                            <div class="row-fluid">
+                                <div class="tab-content">
+                                    <div class="tab-pane active">
+                                        <div class="control-group">
+                                            <div class="progress progress-striped active">
+                                                <div class="bar" style="width: 100%;"></div>
+                                            </div>
+                                            <p>Please wait!! we are loading a large Metabolites / Compound list</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="DashboardChartArea"></div>
+
+                    <div id="ISAreaMultiChart">
+                        <svg></svg>
+                    </div>
+
+                    <div id="QCfitMultiChart">
+                        <svg></svg>
+                    </div>
                 </div>
-            </div>
-
-            <div id="DashboardChartArea"></div>
-
-            <div id="ISAreaMultiChart">
-                <svg></svg>
-            </div>
-
-            <div id="QCfitMultiChart">
-                <svg></svg>
             </div>
         </div>
-    </div>
-</div>
-      </section>
-      <footer>
+    </section>
+    <footer>
         <p>This project is maintained by <a href="https://github.com/ishtiaqahmad">Ishtiaq Ahmad</a></p>
-        <p><small>Hosted on GitHub Pages &mdash; Theme by <a href="https://github.com/orderedlist">orderedlist</a></small></p>
-      </footer>
-    </div>
-    <script src="javascripts/scale.fix.js"></script>
-    <script src="//code.jquery.com/jquery-1.10.1.min.js"></script>
-    <script src="//netdna.bootstrapcdn.com/twitter-bootstrap/2.3.2/js/bootstrap.min.js"></script>
-    <script src="javascripts/d3.v3.js" charset="utf-8"></script>
-    <script src="javascripts/nv.d3.min.js"></script>
-    <script src="javascripts/modifyMultiChart.js" charset="utf-8"></script>
-    <script src="javascripts/qualityControl.js" charset="utf-8"></script>
-    <script type="text/javascript">
+
+        <p>
+            <small>Hosted on GitHub Pages &mdash; Theme by <a href="https://github.com/orderedlist">orderedlist</a>
+            </small>
+        </p>
+    </footer>
+</div>
+<script src="javascripts/scale.fix.js"></script>
+<script src="//code.jquery.com/jquery-1.10.1.min.js"></script>
+<script src="//netdna.bootstrapcdn.com/twitter-bootstrap/2.3.2/js/bootstrap.min.js"></script>
+<script src="javascripts/d3.v3.js" charset="utf-8"></script>
+<script src="javascripts/nv.d3.min.js"></script>
+<script src="javascripts/modifyMultiChart.js" charset="utf-8"></script>
+<script src="javascripts/qualityControl.js" charset="utf-8"></script>
+<script type="text/javascript">
     // d3.json(url, function (error, jsonData) {
-     // if (error) return console.warn(error);
-     // else {
-     // callbackGrid(jsonData);
-     // }
-     // });
+    // if (error) return console.warn(error);
+    // else {
+    // callbackGrid(jsonData);
+    // }
+    // });
 
     $(function () {
         $('#pleaseWaitDialog').modal('show');
@@ -229,17 +250,17 @@
             //drawFocusChart();
         });
     });
-    
-    $.getJSON( url, function (jsonData) {
-            callbackGrid(jsonData);
-     })
-     .done(function() {
-        $('#pleaseWaitDialog').modal('hide');
+
+    $.getJSON(url, function (jsonData) {
+        callbackGrid(jsonData);
     })
-     .fail(function( jqxhr, textStatus, error ) {
-        var err = textStatus + ", " + error;
-        console.log( "Request Failed: " + err );
-    });
+            .done(function () {
+                $('#pleaseWaitDialog').modal('hide');
+            })
+            .fail(function (jqxhr, textStatus, error) {
+                var err = textStatus + ", " + error;
+                console.log("Request Failed: " + err);
+            });
 
     function callbackGrid(matlabX) {
         jsonObj = matlabX;
@@ -260,6 +281,6 @@
         drawQcFitMultiChart();
         $('#pleaseWaitDialog').modal('hide');
     }
-    </script>
-  </body>
+</script>
+</body>
 </html>
