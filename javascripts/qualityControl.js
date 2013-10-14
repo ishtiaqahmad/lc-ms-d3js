@@ -287,33 +287,6 @@ function drawGraph(data, setting) {
     }
 }
 
-$(function () {
-    $("#settingform").submit(function (event) {
-        event.preventDefault();
-        $("#settingform input").each(function (idx, checkboxs) {
-            switch (checkboxs.id) {
-                case "showArea" :
-                    chartsSettingArr.areaChart.visible = checkboxs.checked ? true : false;
-                    break;
-                case "showRT":
-                    chartsSettingArr.rtChart.visible = checkboxs.checked ? true : false;
-                    break;
-                case "showRatioUnc" :
-                    chartsSettingArr.ratioChart.visible = checkboxs.checked ? true : false;
-                    break;
-                case "showRatioQ" :
-                    chartsSettingArr.ratioQChart.visible = checkboxs.checked ? true : false;
-                    break;
-                default :
-                    //reset default here
-                    break;
-            }
-        });
-        $('#advancedSettings').modal('hide');
-        drawVisibleCharts();
-    })
-});
-
 function drawVisibleCharts(extent) {
     $.each(Object.keys(chartsSettingArr), function (idx, ch) {
         var chartSetting = eval('chartsSettingArr.' + ch);

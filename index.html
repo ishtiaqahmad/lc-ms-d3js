@@ -228,39 +228,20 @@
 <script src="javascripts/scale.fix.js"></script>
 <script src="//code.jquery.com/jquery-1.10.1.min.js"></script>
 <script src="//netdna.bootstrapcdn.com/twitter-bootstrap/2.3.2/js/bootstrap.min.js"></script>
-<script src="javascripts/d3.v3.js" charset="utf-8"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/d3/3.1.6/d3.min.js" charset="utf-8"></script>
 <script src="javascripts/nv.d3.min.js"></script>
 <script src="javascripts/modifyMultiChart.js" charset="utf-8"></script>
 <script src="javascripts/qualityControl.js" charset="utf-8"></script>
 <script type="text/javascript">
-    // d3.json(url, function (error, jsonData) {
-    // if (error) return console.warn(error);
-    // else {
-    // callbackGrid(jsonData);
-    // }
-    // });
 
-    $(function () {
-        $('#pleaseWaitDialog').modal('show');
-        $("#compound").change(function () {
-            var selectedValues = $('#compound').val();
-            drawVisibleCharts();
-            drawISAreaMultiChart();
-            drawQcFitMultiChart();
-            //drawFocusChart();
-        });
+    url = 'data/metabolomics.json';
+
+    d3.json(url, function (error, jsonData) {
+        if (error) return console.warn(error);
+        else {
+            callbackGrid(jsonData);
+        }
     });
-
-    $.getJSON(url, function (jsonData) {
-        callbackGrid(jsonData);
-    })
-            .done(function () {
-                $('#pleaseWaitDialog').modal('hide');
-            })
-            .fail(function (jqxhr, textStatus, error) {
-                var err = textStatus + ", " + error;
-                console.log("Request Failed: " + err);
-            });
 
     function callbackGrid(matlabX) {
         jsonObj = matlabX;
@@ -281,6 +262,42 @@
         drawQcFitMultiChart();
         $('#pleaseWaitDialog').modal('hide');
     }
+
+    $(function () {
+        $('#pleaseWaitDialog').modal('show');
+        $("#compound").change(function () {
+            drawVisibleCharts();
+            drawISAreaMultiChart();
+            drawQcFitMultiChart();
+        });
+    });
+
+    $(function () {
+        $("#settingform").submit(function (event) {
+            event.preventDefault();
+            $("#settingform input").each(function (idx, checkboxs) {
+                switch (checkboxs.id) {
+                    case "showArea" :
+                        chartsSettingArr.areaChart.visible = checkboxs.checked ? true : false;
+                        break;
+                    case "showRT":
+                        chartsSettingArr.rtChart.visible = checkboxs.checked ? true : false;
+                        break;
+                    case "showRatioUnc" :
+                        chartsSettingArr.ratioChart.visible = checkboxs.checked ? true : false;
+                        break;
+                    case "showRatioQ" :
+                        chartsSettingArr.ratioQChart.visible = checkboxs.checked ? true : false;
+                        break;
+                    default :
+                        //reset default here
+                        break;
+                }
+            });
+            $('#advancedSettings').modal('hide');
+            drawVisibleCharts();
+        })
+    });
 </script>
 </body>
 </html>
