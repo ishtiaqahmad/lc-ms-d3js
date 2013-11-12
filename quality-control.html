@@ -95,16 +95,17 @@
         Dashboard = jsonObj;
 
         var comboList = $("#compound");
-        $.each(Dashboard.metabolites, function (i, comp) {
+        $.each(filterAnalyte(Dashboard, 'Metabolite'), function (i, comp) {
             comboList.append($("<option></option>")
                     .attr("value", i)
                     .text(comp.Name));
         });
 
-        drawVisibleCharts();
-        drawISAreaMultiChart();
-        drawQcFitMultiChart();
         drawContextBrush();
+        drawVisibleCharts();
+        //drawISAreaMultiChart();
+        //drawQcFitMultiChart();
+
         $('#pleaseWaitDialog').modal('hide');
     }
 
@@ -112,8 +113,8 @@
         $('#pleaseWaitDialog').modal('show');
         $("#compound").change(function () {
             drawVisibleCharts();
-            drawISAreaMultiChart();
-            drawQcFitMultiChart();
+            //drawISAreaMultiChart();
+            //drawQcFitMultiChart();
         });
     });
     $(function () {
