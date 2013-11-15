@@ -434,9 +434,24 @@ function drawGraph(data, setting, chartOptions, eventFunc) {
                 .tickFormat(d3.format('d'))
                 .axisLabel(setting.xAxisLabel);
 
-            chart.yAxis
-                .tickFormat(d3.format('.02f'))
-                .axisLabel(setting.yAxisLabel);
+            if (chart.yAxis)
+                chart.yAxis
+                    .tickFormat(d3.format('.02f'))
+                    .axisLabel(setting.yAxisLabel);
+            else if (chart.yAxis1)
+                chart.yAxis1
+                    .tickFormat(d3.format('.02f'))
+                    .axisLabel(setting.yAxisLabel);
+            if (chart.lines1)
+                chart.lines1.scatter.shape(shapes[5]);
+
+            if (chart.scatter1)
+                chart.scatter1.sizeDomain([100, 100])
+                    .sizeRange([100, 100]);
+            if (chart.scatter2)
+                chart.scatter2.sizeDomain([100, 100])
+                    .sizeRange([100, 100]);
+
 
             chart.tooltipContent(tooltipContent);
 
@@ -446,9 +461,9 @@ function drawGraph(data, setting, chartOptions, eventFunc) {
                 .call(chart);
             nv.utils.windowResize(chart.update);
 
-            chart.dispatch.on('stateChange', function (e) {
-                console.log('New State:', JSON.stringify(e));
-            });
+//            chart.dispatch.on('stateChange', function (e) {
+//                console.log('New State:', JSON.stringify(e));
+//            });
 
             if (typeof eventFunc === "function")
                 eventFunc(chart);
@@ -568,199 +583,267 @@ function drawVisibleCharts(extent) {
     var selectedMetabolite = $('#compound').val();
     var selectedGroup = Dashboard.PlotInfo.Group[0];
     $.each(Dashboard.PlotInfo.Plots, function (idx, chartSetting) {
-        if (chartSetting.visible == undefined)
-            chartSetting = $.extend(chartSetting, {visible: true});
+            if (chartSetting.visible == undefined)
+                chartSetting = $.extend(chartSetting, {visible: true});
 
-        if (chartSetting.ChartType == "Scatter")
-            chartSetting = $.extend(chartSetting, {chartObject: nv.models.scatterChart()});
-        else if (chartSetting.ChartType == "Multi")
-            chartSetting = $.extend(chartSetting, {chartObject: nv.models.multiChart()});
-        else if (chartSetting.ChartType == "Bar")
-            chartSetting = $.extend(chartSetting, {chartObject: nv.models.multiBarChart()});
-        // @TODO push each chart for highlight points events
-        // chartsSettingArr.push(chartSetting);
+            if (chartSetting.ChartType == "Scatter")
+                chartSetting = $.extend(chartSetting, {chartObject: nv.models.scatterChart()});
+            else if (chartSetting.ChartType == "Multi")
+                chartSetting = $.extend(chartSetting, {chartObject: nv.models.multiChart()});
+            else if (chartSetting.ChartType == "Bar")
+                chartSetting = $.extend(chartSetting, {chartObject: nv.models.multiBarChart()});
+            // @TODO push each chart for highlight points events
+            // chartsSettingArr.push(chartSetting);
 
-        if (chartSetting.visible && chartSetting.ChartType == "Bar") {
-            //@TODO
-            //implement filterAnalyteResponse in generic way
-            var btData;
-            if (chartSetting.Yfield == "ISTD") {
-                var metabolite = Dashboard.Metabolite[selectedMetabolite];
-                var istd = Dashboard.ISTD.filter(function (itm, i) {
-                    return itm.Name == metabolite.ISTD;
-                })[0];
-                var allRespVal = eval('istd.' + chartSetting.Ydata);
-                var groupByType = eval('Dashboard.' + chartSetting.Xfield + '.Type');
-                var xAxisData = eval('Dashboard.' + chartSetting.Xfield + '.' + chartSetting.Xdata);
-                var sampleTypeGroups = makeGroup(allRespVal, groupByType);
-                var groups_excluding_sample = sampleTypeGroups.filter(function (itm, i) {
-                    return itm.key != chartSetting.sampleType;
-                });
-
-                btData = groups_excluding_sample.map(function (g) {
-                    return {
-                        key: g.key,
-                        color: g.key == 'QCsample' ? 'black' : undefined,
-                        values: g.values.map(function (val, i) {
-                            return {x: xAxisData[g.originalPos[i]], y: val }
-                        })
-                    }
-                });
-
-                //select the Sample group
-                var sampleType_sampleData = sampleTypeGroups.filter(function (itm, i) {
-                    return itm.key == chartSetting.sampleType;
-                })[0];
-                // make its sub groups on Batch
-                var sampleType_subGroups = makeSubGroup(sampleType_sampleData, eval('Dashboard.Info.' + selectedGroup));
-                btData = btData.concat(sampleType_subGroups.map(function (g) {
-                    return {
-                        key: selectedGroup + ' ' + g.key,
-                        values: g.values.map(function (val, i) {
-                            return {x: xAxisData[g.originalPos[i]], y: val }
-                        })
-                    }
-                }));
-
-                var negative_test_data = new d3.range(0, 3).map(function (d, i) {
-                    return {
-                        key: 'Stream ' + i,
-                        values: new d3.range(0, 11).map(function (f, j) {
-                            return {
-                                y: 10 + Math.random() * 100 * (Math.floor(Math.random() * 100) % 2 ? 1 : -1),
-                                x: j
-                            }
-                        })
-                    };
-                });
-
-                //console.log(btData, negative_test_data)
-//                defaultChartConfig("chart2", btData, {
-//                    delay: 50,
-//                    reduceXTicks: true,
-//                    transitionDuration: 0,
-//                    groupSpacing: 0.2
-//                });
-            }
-            else if (chartSetting.Yfield == "Metabolite") {
-                var metabolite = Dashboard.Metabolite[selectedMetabolite];
-
-                var allRespVal = eval('metabolite.' + chartSetting.Ydata);
-                var groupByType = eval('Dashboard.' + chartSetting.Xfield + '.Type');
-                var xAxisData = eval('Dashboard.' + chartSetting.Xfield + '.' + chartSetting.Xdata);
-                var sampleTypeGroups = makeGroup(allRespVal, groupByType);
-                var groups_excluding_sample = sampleTypeGroups.filter(function (itm, i) {
-                    return itm.key != chartSetting.sampleType;
-                });
-
-                btData = groups_excluding_sample.map(function (g) {
-                    return {
-                        key: g.key,
-                        color: g.key == 'QCsample' ? 'black' : undefined,
-                        values: g.values.map(function (val, i) {
-                            return {x: xAxisData[g.originalPos[i]], y: val }
-                        })
-                    }
-                });
-
-                //select the Sample group
-                var sampleType_sampleData = sampleTypeGroups.filter(function (itm, i) {
-                    return itm.key == chartSetting.sampleType;
-                })[0];
-                // make its sub groups on Batch
-                var sampleType_subGroups = makeSubGroup(sampleType_sampleData, eval('Dashboard.Info.' + selectedGroup));
-                btData = btData.concat(sampleType_subGroups.map(function (g) {
-                    return {
-                        key: selectedGroup + ' ' + g.key,
-                        values: g.values.map(function (val, i) {
-                            return {x: xAxisData[g.originalPos[i]], y: val }
-                        })
-                    }
-                }));
-
-                var negative_test_data = new d3.range(0, 3).map(function (d, i) {
-                    return {
-                        key: 'Stream ' + i,
-                        values: new d3.range(0, 11).map(function (f, j) {
-                            return {
-                                y: 10 + Math.random() * 100 * (Math.floor(Math.random() * 100) % 2 ? 1 : -1),
-                                x: j
-                            }
-                        })
-                    };
-                });
-
-                //console.log(btData, negative_test_data)
-//                defaultChartConfig("chart2", btData, {
-//                    delay: 50,
-//                    reduceXTicks: true,
-//                    transitionDuration: 0,
-//                    groupSpacing: 0.2
-//                });
-            }
-
-            /*
-             *  pre-filter the final data before actual drawing
-             *   filter orderAll only between brush extent i.e. [2, 30]
-             */
-            if (extent) {
-                btData.map(function (d) {
-                    d.values = d.values.filter(function (d) {
-                        return extent[0] <= d.x && d.x <= extent[1];
+            if (chartSetting.visible && chartSetting.ChartType == "Bar") {
+                //@TODO
+                //implement filterAnalyteResponse in generic way
+                var btData;
+                if (chartSetting.Yfield == "ISTD") {
+                    var metabolite = Dashboard.Metabolite[selectedMetabolite];
+                    var istd = Dashboard.ISTD.filter(function (itm, i) {
+                        return itm.Name == metabolite.ISTD;
+                    })[0];
+                    var allRespVal = eval('istd.' + chartSetting.Ydata);
+                    var groupByType = eval('Dashboard.' + chartSetting.Xfield + '.Type');
+                    var xAxisData = eval('Dashboard.' + chartSetting.Xfield + '.' + chartSetting.Xdata);
+                    var sampleTypeGroups = makeGroup(allRespVal, groupByType);
+                    var groups_excluding_sample = sampleTypeGroups.filter(function (itm, i) {
+                        return itm.key != chartSetting.sampleType;
                     });
-                    return d;
+
+                    btData = groups_excluding_sample.map(function (g) {
+                        return {
+                            key: g.key,
+                            color: g.key == 'QCsample' ? 'black' : undefined,
+                            values: g.values.map(function (val, i) {
+                                return {x: xAxisData[g.originalPos[i]], y: val }
+                            })
+                        }
+                    });
+
+                    //select the Sample group
+                    var sampleType_sampleData = sampleTypeGroups.filter(function (itm, i) {
+                        return itm.key == chartSetting.sampleType;
+                    })[0];
+                    // make its sub groups on Batch
+                    var sampleType_subGroups = makeSubGroup(sampleType_sampleData, eval('Dashboard.Info.' + selectedGroup));
+                    btData = btData.concat(sampleType_subGroups.map(function (g) {
+                        return {
+                            key: selectedGroup + ' ' + g.key,
+                            values: g.values.map(function (val, i) {
+                                return {x: xAxisData[g.originalPos[i]], y: val }
+                            })
+                        }
+                    }));
+
+                    var negative_test_data = new d3.range(0, 3).map(function (d, i) {
+                        return {
+                            key: 'Stream ' + i,
+                            values: new d3.range(0, 11).map(function (f, j) {
+                                return {
+                                    y: 10 + Math.random() * 100 * (Math.floor(Math.random() * 100) % 2 ? 1 : -1),
+                                    x: j
+                                }
+                            })
+                        };
+                    });
+
+                    //console.log(btData, negative_test_data)
+//                defaultChartConfig("chart2", btData, {
+//                    delay: 50,
+//                    reduceXTicks: true,
+//                    transitionDuration: 0,
+//                    groupSpacing: 0.2
+//                });
+                }
+                else if (chartSetting.Yfield == "Metabolite") {
+                    var metabolite = Dashboard.Metabolite[selectedMetabolite];
+
+                    var allRespVal = eval('metabolite.' + chartSetting.Ydata);
+                    var groupByType = eval('Dashboard.' + chartSetting.Xfield + '.Type');
+                    var xAxisData = eval('Dashboard.' + chartSetting.Xfield + '.' + chartSetting.Xdata);
+                    var sampleTypeGroups = makeGroup(allRespVal, groupByType);
+                    var groups_excluding_sample = sampleTypeGroups.filter(function (itm, i) {
+                        return itm.key != chartSetting.sampleType;
+                    });
+
+                    btData = groups_excluding_sample.map(function (g) {
+                        return {
+                            key: g.key,
+                            color: g.key == 'QCsample' ? 'black' : undefined,
+                            values: g.values.map(function (val, i) {
+                                return {x: xAxisData[g.originalPos[i]], y: val }
+                            })
+                        }
+                    });
+
+                    //select the Sample group
+                    var sampleType_sampleData = sampleTypeGroups.filter(function (itm, i) {
+                        return itm.key == chartSetting.sampleType;
+                    })[0];
+                    // make its sub groups on Batch
+                    var sampleType_subGroups = makeSubGroup(sampleType_sampleData, eval('Dashboard.Info.' + selectedGroup));
+                    btData = btData.concat(sampleType_subGroups.map(function (g) {
+                        return {
+                            key: selectedGroup + ' ' + g.key,
+                            values: g.values.map(function (val, i) {
+                                return {x: xAxisData[g.originalPos[i]], y: val }
+                            })
+                        }
+                    }));
+
+                    var negative_test_data = new d3.range(0, 3).map(function (d, i) {
+                        return {
+                            key: 'Stream ' + i,
+                            values: new d3.range(0, 11).map(function (f, j) {
+                                return {
+                                    y: 10 + Math.random() * 100 * (Math.floor(Math.random() * 100) % 2 ? 1 : -1),
+                                    x: j
+                                }
+                            })
+                        };
+                    });
+
+                    //console.log(btData, negative_test_data)
+//                defaultChartConfig("chart2", btData, {
+//                    delay: 50,
+//                    reduceXTicks: true,
+//                    transitionDuration: 0,
+//                    groupSpacing: 0.2
+//                });
+                }
+
+                /*
+                 *  pre-filter the final data before actual drawing
+                 *   filter orderAll only between brush extent i.e. [2, 30]
+                 */
+                if (extent) {
+                    btData.map(function (d) {
+                        d.values = d.values.filter(function (d) {
+                            return extent[0] <= d.x && d.x <= extent[1];
+                        });
+                        return d;
+                    });
+                }
+                btData = btData.map(function (g) {
+                    g.values = g.values.filter(function (itm, i) {
+                        return itm.y != null
+                    })
+                    return g;
                 });
-            }
-            btData = btData.map(function (g) {
-                g.values = g.values.filter(function (itm, i) {
-                    return itm.y != null
-                })
-                return g;
-            });
 
-            drawGraph(btData, chartSetting, {
-                margin: {bottom: 100},
-                transitionDuration: 0,
-                delay: 50,
-                groupSpacing: 0.2,
-                reduceXTicks: false
-            });
-            return
-        } else if (chartSetting.visible && chartSetting.ChartType == "Scatter") {
-            var btData;
-            if (chartSetting.Yfield == null && chartSetting.Xfield == null) {  // e.g. PCA chart is special case Scatter plot
-                var groupByType = Dashboard.Info.Type;
-                var pca_sampleTypeGroups = makeGroup(chartSetting.Yvalues, groupByType);
+                drawGraph(btData, chartSetting, {
+                    margin: {bottom: 100},
+                    transitionDuration: 0,
+                    delay: 50,
+                    groupSpacing: 0.2,
+                    reduceXTicks: false
+                });
+                return
+            } else if (chartSetting.visible && chartSetting.ChartType == "Scatter") {
+                var btData;
+                if (chartSetting.Yfield == null && chartSetting.Xfield == null) {  // e.g. PCA chart is special case Scatter plot
+                    var groupByType = Dashboard.Info.Type;
+                    var pca_sampleTypeGroups = makeGroup(chartSetting.Yvalues, groupByType);
 
-                var pca_groups_excluding_sample = pca_sampleTypeGroups.filter(function (itm, i) {
+                    var pca_groups_excluding_sample = pca_sampleTypeGroups.filter(function (itm, i) {
+                        return itm.key != chartSetting.sampleType;
+                    });
+
+                    btData = pca_groups_excluding_sample.map(function (g) {
+                        return {
+                            key: g.key,
+                            color: g.key == 'QCsample' ? 'black' : '',
+                            values: g.values.map(function (val, i) {
+                                return {x: chartSetting.Xvalues[g.originalPos[i]], y: val }
+                            })
+                        }
+                    });
+
+                    //select the Sample group
+                    var pca_sampleType_sampleData = pca_sampleTypeGroups.filter(function (itm, i) {
+                        return itm.key == chartSetting.sampleType;
+                    })[0];
+                    // make its sub groups on Batch
+                    var pca_sampleType_subGroups = makeSubGroup(pca_sampleType_sampleData, eval('Dashboard.Info.' + selectedGroup));
+                    btData = btData.concat(pca_sampleType_subGroups.map(function (g) {
+                        return {
+                            key: selectedGroup + ' ' + g.key,
+                            values: g.values.map(function (val, i) {
+                                return {x: chartSetting.Xvalues[g.originalPos[i]], y: val }
+                            })
+                        }
+                    }));
+
+                    var minMax = getMinMax(btData);
+                    drawGraph(btData, chartSetting, {
+                        showDistX: false,
+                        showDistY: false,
+                        useVoronoi: false,
+                        color: d3.scale.category20().range(),
+                        sizeDomain: [100, 100],
+                        sizeRange: [100, 100],
+                        forceY: [(minMax.minY - minMax.minY * .1 ), (minMax.maxY + minMax.maxY * .1 )],
+                        forceX: [minMax.minX , minMax.maxX]
+
+                    }, subscribeScatterPlotEvent);
+                    return
+                }
+                var allRespVal = filterAnalyteResponse(filterAnalyte(Dashboard, chartSetting.Yfield), selectedMetabolite, chartSetting.Ydata);
+                var groupByType = eval('Dashboard.' + chartSetting.Xfield + '.Type');
+                var xAxisData = eval('Dashboard.' + chartSetting.Xfield + '.' + chartSetting.Xdata);
+
+                var sampleTypeGroups = makeGroup(allRespVal, groupByType); // group by sample type i.g. sample, QCsample, blank etc.
+
+                var groups_excluding_sample = sampleTypeGroups.filter(function (itm, i) {
                     return itm.key != chartSetting.sampleType;
                 });
 
-                btData = pca_groups_excluding_sample.map(function (g) {
+                btData = groups_excluding_sample.map(function (g) {
                     return {
                         key: g.key,
                         color: g.key == 'QCsample' ? 'black' : '',
                         values: g.values.map(function (val, i) {
-                            return {x: chartSetting.Xvalues[g.originalPos[i]], y: val }
+                            return {x: xAxisData[g.originalPos[i]], y: val }
                         })
                     }
                 });
 
-                //select the Sample group
-                var pca_sampleType_sampleData = pca_sampleTypeGroups.filter(function (itm, i) {
+                var sampleType_sampleData = sampleTypeGroups.filter(function (itm, i) {  // only copy the required sampleType in this case Sample
                     return itm.key == chartSetting.sampleType;
                 })[0];
-                // make its sub groups on Batch
-                var pca_sampleType_subGroups = makeSubGroup(pca_sampleType_sampleData, eval('Dashboard.Info.' + selectedGroup));
-                btData = btData.concat(pca_sampleType_subGroups.map(function (g) {
+
+                // sub groups (i.e. batch, duplo etc.) within top level sample type group
+                var sampleType_subGroups = makeSubGroup(sampleType_sampleData, eval('Dashboard.' + chartSetting.Xfield + '.' + selectedGroup));
+                btData = btData.concat(sampleType_subGroups.map(function (g) {
                     return {
                         key: selectedGroup + ' ' + g.key,
                         values: g.values.map(function (val, i) {
-                            return {x: chartSetting.Xvalues[g.originalPos[i]], y: val }
+                            return {x: xAxisData[g.originalPos[i]], y: val }
                         })
                     }
                 }));
 
+                /*
+                 *  pre-filter the final data before actual drawing
+                 *   filter orderAll only between brush extent i.e. [2, 30]
+                 */
+                if (extent) {
+                    btData.map(function (d) {
+                        d.values = d.values.filter(function (d) {
+                            return extent[0] <= d.x && d.x <= extent[1];
+                        });
+                        return d;
+                    });
+                }
+
+                btData = btData.map(function (g) {
+                    g.values = g.values.filter(function (itm, i) {
+                        return itm.y != null
+                    })
+                    return g;
+                });
                 var minMax = getMinMax(btData);
                 drawGraph(btData, chartSetting, {
                     showDistX: false,
@@ -771,151 +854,119 @@ function drawVisibleCharts(extent) {
                     sizeRange: [100, 100],
                     forceY: [(minMax.minY - minMax.minY * .1 ), (minMax.maxY + minMax.maxY * .1 )],
                     forceX: [minMax.minX , minMax.maxX]
-
                 }, subscribeScatterPlotEvent);
+            } else if (chartSetting.visible && chartSetting.ChartType == "Multi") {
+                var btData = [];
+                var respQCtrend, respSetYfield = [], respSetYfield2 = [];
+                //Ydata might be an array
+                if (chartSetting.Yfield && chartSetting.Ydata instanceof Array) {
+                    chartSetting.Ydata.forEach(function (d, i) {
+                        respSetYfield.push({
+                            type: chartSetting.SubType[i],
+                            values: filterAnalyteResponse(filterAnalyte(Dashboard, chartSetting.Yfield), selectedMetabolite, d)
+                        });
+                    })
+                }
+                if (chartSetting.Yfield2 && chartSetting.Ydata2 instanceof Array) {
+                    chartSetting.Ydata2.forEach(function (d, i) {
+                        respSetYfield2.push({
+                            type: chartSetting.SubType[i],
+                            values: filterAnalyteResponse(filterAnalyte(Dashboard, chartSetting.Yfield2), selectedMetabolite, d)
+                        });
+                    })
+                }
+
+                var groupByType = eval('Dashboard.' + chartSetting.Xfield + '.Type');
+                var xAxisData = eval('Dashboard.' + chartSetting.Xfield + '.' + chartSetting.Xdata);
+
+                if (respSetYfield.length > 0) {
+                    respSetYfield = respSetYfield.map(function (respSet) {
+                        if (respSet.type.toLowerCase() != 'line') {  // in case of line no grouping
+                            var sampleTypeGroups = makeGroup(respSet.values, groupByType);
+                            var groups_excluding_sample = sampleTypeGroups.filter(function (itm, i) {
+                                return itm.key != chartSetting.sampleType;
+                            });
+                            var result = groups_excluding_sample.map(function (g) {
+                                return {
+                                    type: respSet.type.toLowerCase(),
+                                    yAxis: 1,
+                                    key: g.key,
+                                    color: g.key == 'QCsample' ? 'black' : undefined,
+                                    values: g.values.map(function (val, i) {
+                                        return {x: xAxisData[g.originalPos[i]], y: val }
+                                    })
+                                }
+                            });
+
+                            var sampleType_sampleData = sampleTypeGroups.filter(function (itm, i) {
+                                return itm.key == chartSetting.sampleType;
+                            })[0];
+                            var sampleType_subGroups = makeSubGroup(sampleType_sampleData, eval('Dashboard.Info.' + selectedGroup));
+                            respSet.values = result.concat(sampleType_subGroups.map(function (g) {
+                                return {
+                                    type: respSet.type.toLowerCase(),
+                                    yAxis: 1,
+                                    key: selectedGroup + ' ' + g.key,
+                                    values: g.values.map(function (val, i) {
+                                        return {x: xAxisData[g.originalPos[i]], y: val }
+                                    })
+                                }
+                            }));
+                            return respSet;
+                        } else {
+                            var result = respSet.values.map(function (g, i) {
+                                return
+                            });
+                            respSet.values = [
+                                {
+                                    type: respSet.type.toLowerCase(),
+                                    yAxis: 1,
+                                    key: 'Trend',
+                                    values: respSet.values.map(function (g, i) {
+                                        return    {x: xAxisData[i], y: g }
+                                    })
+                                }
+                            ]
+                            return respSet;
+                        }
+                    });
+                }
+                //console.log(respSetYfield, respSetYfield2);
+                respSetYfield.map(function (respSet) {
+                    btData = btData.concat(respSet.values.map(function (val) {
+                        return val;
+                    }))
+                })
+                console.log(btData)
+                btData = btData.map(function (g) {
+                    g.values = g.values.filter(function (itm, i) {
+                        return itm.y != null
+                    })
+                    return g;
+                });
+                if (btData.length > 0) {
+                    var minMax = getMinMax(btData);
+                    drawGraph(btData, chartSetting, {
+                        showDistX: false,
+                        showDistY: false,
+                        useVoronoi: false,
+                        color: d3.scale.category20().range(),
+                        margin: {top: 30, right: 60, bottom: 50, left: 70},
+                        forceY1: [(minMax.minY - minMax.minY * .1 ), (minMax.maxY + minMax.maxY * .1 )],
+                        forceX: [minMax.minX , minMax.maxX]
+                    });
+                }
+
                 return
             }
-            var allRespVal = filterAnalyteResponse(filterAnalyte(Dashboard, chartSetting.Yfield), selectedMetabolite, chartSetting.Ydata);
-            var groupByType = eval('Dashboard.' + chartSetting.Xfield + '.Type');
-            var xAxisData = eval('Dashboard.' + chartSetting.Xfield + '.' + chartSetting.Xdata);
-
-            var sampleTypeGroups = makeGroup(allRespVal, groupByType); // group by sample type i.g. sample, QCsample, blank etc.
-
-            var groups_excluding_sample = sampleTypeGroups.filter(function (itm, i) {
-                return itm.key != chartSetting.sampleType;
-            });
-
-            btData = groups_excluding_sample.map(function (g) {
-                return {
-                    key: g.key,
-                    color: g.key == 'QCsample' ? 'black' : '',
-                    values: g.values.map(function (val, i) {
-                        return {x: xAxisData[g.originalPos[i]], y: val }
-                    })
-                }
-            });
-
-            var sampleType_sampleData = sampleTypeGroups.filter(function (itm, i) {  // only copy the required sampleType in this case Sample
-                return itm.key == chartSetting.sampleType;
-            })[0];
-
-            // sub groups (i.e. batch, duplo etc.) within top level sample type group
-            var sampleType_subGroups = makeSubGroup(sampleType_sampleData, eval('Dashboard.' + chartSetting.Xfield + '.' + selectedGroup));
-            btData = btData.concat(sampleType_subGroups.map(function (g) {
-                return {
-                    key: selectedGroup + ' ' + g.key,
-                    values: g.values.map(function (val, i) {
-                        return {x: xAxisData[g.originalPos[i]], y: val }
-                    })
-                }
-            }));
-
-            /*
-             *  pre-filter the final data before actual drawing
-             *   filter orderAll only between brush extent i.e. [2, 30]
-             */
-            if (extent) {
-                btData.map(function (d) {
-                    d.values = d.values.filter(function (d) {
-                        return extent[0] <= d.x && d.x <= extent[1];
-                    });
-                    return d;
-                });
+            else {
+                // remove it from dom element
+                removeGraph(chartSetting);
             }
 
-            btData = btData.map(function (g) {
-                g.values = g.values.filter(function (itm, i) {
-                    return itm.y != null
-                })
-                return g;
-            });
-            var minMax = getMinMax(btData);
-            drawGraph(btData, chartSetting, {
-                showDistX: false,
-                showDistY: false,
-                useVoronoi: false,
-                color: d3.scale.category20().range(),
-                sizeDomain: [100, 100],
-                sizeRange: [100, 100],
-                forceY: [(minMax.minY - minMax.minY * .1 ), (minMax.maxY + minMax.maxY * .1 )],
-                forceX: [minMax.minX , minMax.maxX]
-            }, subscribeScatterPlotEvent);
-        } else if (chartSetting.visible && chartSetting.ChartType == "Multi") {
-            /*
-             var btData, trend;
-             var respQCtrend, respSetYfield = [], respSetYfield2 = [];
-             //Ydata might be an array
-             //@TODO need to know type of plot for each y data field
-             if (chartSetting.Yfield && chartSetting.Ydata instanceof Array) {
-             chartSetting.Ydata.forEach(function (d) {
-             respSetYfield.push(filterAnalyteResponse(filterAnalyte(Dashboard, chartSetting.Yfield), selectedMetabolite, d));
-             })
-             }
-             if (chartSetting.Yfield2 && chartSetting.Ydata2 instanceof Array) {
-             chartSetting.Ydata2.forEach(function (d) {
-             respSetYfield2.push(filterAnalyteResponse(filterAnalyte(Dashboard, chartSetting.Yfield2), selectedMetabolite, d));
-             })
-             }
-             chartSetting.SubType
-             console.log(respSetYfield,respSetYfield2);
-
-             var groupByType = eval('Dashboard.' + chartSetting.Xfield + '.Type');
-             var xAxisData = eval('Dashboard.' + chartSetting.Xfield + '.' + chartSetting.Xdata);
-
-             var sampleTypeGroups = makeGroup(allRespVal, groupByType); // group by sample type i.g. sample, QCsample, blank etc.
-
-             var groups_excluding_sample = sampleTypeGroups.filter(function (itm, i) {
-             return itm.key != chartSetting.sampleType;
-             });
-
-             btData = groups_excluding_sample.map(function (g) {
-             return {
-             key: g.key,
-             color: g.key == 'QCsample' ? 'black' : undefined,
-             values: g.values.map(function (val, i) {
-             return {x: xAxisData[g.originalPos[i]], y: val }
-             })
-             }
-             });
-
-             //select the Sample group
-             var sampleType_sampleData = sampleTypeGroups.filter(function (itm, i) {
-             return itm.key == chartSetting.sampleType;
-             })[0];
-             // make its sub groups on Batch
-             var sampleType_subGroups = makeSubGroup(sampleType_sampleData, eval('Dashboard.Info.' + selectedGroup));
-             btData = btData.concat(sampleType_subGroups.map(function (g) {
-             return {
-             key: selectedGroup + ' ' + g.key,
-             values: g.values.map(function (val, i) {
-             return {x: xAxisData[g.originalPos[i]], y: val }
-             })
-             }
-             }));
-
-             btData = btData.map(function (g) {
-             g.values = g.values.filter(function (itm, i) {
-             return itm.y != null
-             })
-             return g;
-             });
-
-             drawGraph(btData, chartSetting, {
-             margin: {bottom: 100},
-             transitionDuration: 0,
-             delay: 50,
-             groupSpacing: 0.2,
-             reduceXTicks: false
-             });
-             */
-            return
         }
-        else {
-            // remove it from dom element
-            removeGraph(chartSetting);
-        }
-
-    });
+    )
+    ;
 
 }
 
