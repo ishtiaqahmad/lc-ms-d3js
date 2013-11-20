@@ -1,7 +1,7 @@
 //var url = "https://dl.dropboxusercontent.com/s/afaxphho9v2rrhf/Dashboard.json";
 var url = 'data/metabolomics.json';
 var shapes = ['circle', 'cross', 'triangle-up', 'triangle-down', 'diamond', 'square'], random = d3.random.normal();
-var Dashboard, elm;
+var Dashboard, elm, gState = {}, firstChartLegend, mainLegend;
 var jsonObj;
 var qcFitRatioChart, isAreaChart, focusChart;
 
@@ -44,15 +44,15 @@ var chartsSettingArr = {   // charts array and its default values
     }
 };
 
-Array.prototype.clean = function (deleteValue) {
-    for (var i = 0; i < this.length; i++) {
-        if (this[i] == deleteValue) {
-            this.splice(i, 1);
-            i--;
-        }
-    }
-    return this;
-};
+//Array.prototype.clean = function (deleteValue) {
+//    for (var i = 0; i < this.length; i++) {
+//        if (this[i] == deleteValue) {
+//            this.splice(i, 1);
+//            i--;
+//        }
+//    }
+//    return this;
+//};
 
 String.prototype.hashCode = function () {
     var hash = 0, i, char;
@@ -80,13 +80,19 @@ function escapeHtml(string) {
     });
 }
 
-function tooltipContent(key, x, y, e, graph) {
-    var selectedValues = $('#compound').val();
-    //console.log(eval('Dashboard.metabolites['+selectedValues+'].'+key));
-    return '<h3>' + key + '</h3>' +
-        '<p>Batch :' + e.point.batch + ' Sample :' + e.point.sampLab + '</p>' +
-        '<p>' + y + ' on ' + x + '</p>';
+function getBatch(element) {
+    return element.series.originalPos ? Dashboard.Info.Batch[element.series.originalPos[element.pointIndex]] : Dashboard.Info.Batch[element.point.x];
+}
 
+function getSampLabel(element) {
+    return element.series.originalPos ? Dashboard.Info.Label[element.series.originalPos[element.pointIndex]] : Dashboard.Info.Label[element.point.x];
+}
+function tooltipContent(key, x, y, e, graph) {
+    //console.log(key, x, y, e)
+    //"<span class='badge badge-success'> " + key +"</span>"
+    return '<h3>' + key + '</h3>' +
+        '<p>Batch :' + getBatch(e) + ' Sample :' + getSampLabel(e) + '</p>' +
+        '<p>' + e.point.y + ' on ' + e.point.x + '</p>';
 }
 /*
  * TODo
@@ -95,8 +101,8 @@ function tooltipContent(key, x, y, e, graph) {
  */
 function getMinMax(data) {
     var minY, maxY, minX, maxX;
-    minY = maxY = 0;
-    minX = maxX = 0;
+    minY = 1000000, maxY = -1000000;
+    minX = 1000000, maxX = -1000000;
     data.forEach(function (d) {
         if (d.values.length) {
             d.values.forEach(function (s) {
@@ -359,7 +365,6 @@ function removeGraph(setting) {
 function updateGraph(data, setting, chartOptions) {
     var chartId = 'Graph' + setting.Title.hashCode();
     if ($('#' + chartId).length) {
-        var minMax = getMinMax(data);
         var chart = setting.chartObject;
         if (chart) {
             chart.options(chartOptions);
@@ -387,6 +392,19 @@ Event.subscribe = function (args) {
     return this;
 };
 
+function updateStates(newState) {
+    //console.log('newState?', newState);
+    d3.map(Dashboard.PlotInfo.Plots).forEach((function (key, value) {
+        if (typeof value.chartObject === "function") {
+            value.chartObject.dispatch.changeState(newState);
+            value.chartObject.update();
+        }
+    }));
+
+//    Dashboard.PlotInfo.Plots[0].chartObject.dispatch.changeState({disabled: [true, true, false, false, false, false]});
+//    //Dashboard.PlotInfo.Plots[0].chartObject.state({disabled: [true, true, false, false, false, false]});
+//    Dashboard.PlotInfo.Plots[0].chartObject.update();
+}
 function subscribeScatterPlotEvent(chart) {
     chart.scatter.dispatch.on('elementMouseout', function (_) {
         setTimeout(function () {
@@ -408,92 +426,102 @@ function subscribeScatterPlotEvent(chart) {
         elm = _;
         //chart.scatter.clearHighlights();
     });
+
+    chart.dispatch.on('stateChange', function (_) {
+        updateStates(_)
+        setTimeout(function () {
+            updateStates(_)
+        }, 50);
+    });
+
+    chart.dispatch.on('changeState', function (_) {
+        //console.log('changeState?', _);
+    });
 }
 
 function drawGraph(data, setting, chartOptions, eventFunc) {
     var chartId = 'Graph' + setting.Title.hashCode();
-    if ($('#' + chartId).length) {  // exist update it instead
-        updateGraph(data, setting, chartOptions);
+//    if ($('#' + chartId).length) {  // exist update it instead
+//        updateGraph(data, setting, chartOptions);
+//
+//    } else {
+    if ($('#' + chartId).length)
+        removeGraph(setting)
 
-    } else {
-        $('<div/>', {
-            "class": "dashboardChart",
-            title: setting.Title + 'Graph',
-            id: chartId
-        }).appendTo('#DashboardChartArea').prepend('<svg/>');
+    $('<div/>', {
+        "class": "dashboardChart",
+        title: setting.Title + 'Graph',
+        id: chartId
+    }).appendTo('#DashboardChartArea').prepend('<svg/>');
 
-        $('#' + chartId).prepend("<div class='row'>" +
-            "<div class='span00 text-center'>" +
-            "<p><span class='label label-important'>" + setting.Title + " Chart</span></p>" +
-            "</div></div>");
+    $('#' + chartId).prepend("<div class='row'>" +
+        "<div class='span00 text-center'>" +
+        "<p><span class='label label-important'>" + setting.Title + " Chart</span></p>" +
+        "</div></div>");
 
-        var gp = function () {
-            var chart = setting.chartObject;
-            chart.options(chartOptions);
+    var gp = function () {
+        var chart = setting.chartObject;
+        chart.options(chartOptions);
+        chart.xAxis
+            .tickFormat(d3.format('d'))
+            .showMaxMin(true)
+            .axisLabel(setting.xAxisLabel);
+
+        if (chart.yAxis)
+            chart.yAxis
+                .tickFormat(d3.format('.02f'))
+                .axisLabel(setting.yAxisLabel);
+        if (chart.yAxis1)
+            chart.yAxis1
+                .tickFormat(d3.format('.02f'))
+                .axisLabel(setting.yAxisLabel);
+        if (chart.yAxis2)
+            chart.yAxis2
+                .tickFormat(d3.format('.02f'))
+                .axisLabel(setting.yAxis2Label);
+
+        if (chart.multibar) {
+            chart.multibar.hideable(true);
+            var axisScale = d3.scale.linear()
+                .domain([0, 211])
+                .range([0, 211]);
             chart.xAxis
+                .scale(axisScale)
                 .tickFormat(d3.format('d'))
+                .showMaxMin(true)
                 .axisLabel(setting.xAxisLabel);
+        }
 
-            if (chart.yAxis)
-                chart.yAxis
-                    .tickFormat(d3.format('.02f'))
-                    .axisLabel(setting.yAxisLabel);
-            else if (chart.yAxis1)
-                chart.yAxis1
-                    .tickFormat(d3.format('.02f'))
-                    .axisLabel(setting.yAxisLabel);
-            if (chart.lines1)
-                chart.lines1.scatter.shape(shapes[5]);
+        if (chart.lines1)
+            chart.lines1.scatter.shape(shapes[5]);
 
-            if (chart.scatter1)
-                chart.scatter1.sizeDomain([100, 100])
-                    .sizeRange([100, 100]);
-            if (chart.scatter2)
-                chart.scatter2.sizeDomain([100, 100])
-                    .sizeRange([100, 100]);
+        if (chart.scatter1)
+            chart.scatter1.sizeDomain([100, 100])
+                .sizeRange([100, 100]);
+        if (chart.scatter2)
+            chart.scatter2.sizeDomain([100, 100])
+                .sizeRange([100, 100]);
 
+        chart.tooltipContent(tooltipContent);
 
-            chart.tooltipContent(tooltipContent);
-
-            d3.select('#' + chartId + ' svg')
-                .datum(data)
-                .transition().duration(500)
-                .call(chart);
-            nv.utils.windowResize(chart.update);
+        d3.select('#' + chartId + ' svg')
+            .datum(data)
+            .transition().duration(500)
+            .call(chart);
+        nv.utils.windowResize(chart.update);
 
 //            chart.dispatch.on('stateChange', function (e) {
 //                console.log('New State:', JSON.stringify(e));
 //            });
 
-            if (typeof eventFunc === "function")
-                eventFunc(chart);
-            //this[key](value);
-            /*
-             chart.scatter.dispatch.on('elementMouseout', function (_) {
-             setTimeout(function () {
-             if (elm && elm.seriesIndex == _.seriesIndex && elm.pointIndex == _.pointIndex) {
-             //chart.scatter.highlightPoint(_.seriesIndex, _.pointIndex, true);
-             $.each(Object.keys(chartsSettingArr), function (idx, ch) {
-             var chartSetting = eval('chartsSettingArr.' + ch);
-             if (chartSetting.visible) {
-             chartSetting.chartObject.scatter.clearHighlights();
-             chartSetting.chartObject.scatter.highlightPoint(_.seriesIndex, _.pointIndex, true);
-             }
-             });
-             }
-             }, 100);
+        if (typeof eventFunc === "function")
+            eventFunc(chart);
 
-             });
-             chart.scatter.dispatch.on('elementClick', function (_) {
-             elm = _;
-             chart.scatter.clearHighlights();
-             });
-             */
-            setting.chartObject = chart;
-            return chart;
-        }
-        nv.addGraph(gp);
+        setting.chartObject = chart;
+        return chart;
     }
+    nv.addGraph(gp);
+    //}
 }
 //
 //function drawVisibleCharts(extent) {
@@ -591,7 +619,7 @@ function drawVisibleCharts(extent) {
             else if (chartSetting.ChartType == "Multi")
                 chartSetting = $.extend(chartSetting, {chartObject: nv.models.multiChart()});
             else if (chartSetting.ChartType == "Bar")
-                chartSetting = $.extend(chartSetting, {chartObject: nv.models.multiBarChart()});
+                chartSetting = $.extend(chartSetting, {chartObject: nv.models.multiChart()});
             // @TODO push each chart for highlight points events
             // chartsSettingArr.push(chartSetting);
 
@@ -614,6 +642,8 @@ function drawVisibleCharts(extent) {
 
                     btData = groups_excluding_sample.map(function (g) {
                         return {
+                            type: 'bar',
+                            yAxis: 1,
                             key: g.key,
                             color: g.key == 'QCsample' ? 'black' : undefined,
                             values: g.values.map(function (val, i) {
@@ -630,24 +660,14 @@ function drawVisibleCharts(extent) {
                     var sampleType_subGroups = makeSubGroup(sampleType_sampleData, eval('Dashboard.Info.' + selectedGroup));
                     btData = btData.concat(sampleType_subGroups.map(function (g) {
                         return {
+                            type: 'bar',
+                            yAxis: 1,
                             key: selectedGroup + ' ' + g.key,
                             values: g.values.map(function (val, i) {
                                 return {x: xAxisData[g.originalPos[i]], y: val }
                             })
                         }
                     }));
-
-                    var negative_test_data = new d3.range(0, 3).map(function (d, i) {
-                        return {
-                            key: 'Stream ' + i,
-                            values: new d3.range(0, 11).map(function (f, j) {
-                                return {
-                                    y: 10 + Math.random() * 100 * (Math.floor(Math.random() * 100) % 2 ? 1 : -1),
-                                    x: j
-                                }
-                            })
-                        };
-                    });
 
                     //console.log(btData, negative_test_data)
 //                defaultChartConfig("chart2", btData, {
@@ -670,6 +690,8 @@ function drawVisibleCharts(extent) {
 
                     btData = groups_excluding_sample.map(function (g) {
                         return {
+                            type: 'bar',
+                            yAxis: 1,
                             key: g.key,
                             color: g.key == 'QCsample' ? 'black' : undefined,
                             values: g.values.map(function (val, i) {
@@ -686,6 +708,8 @@ function drawVisibleCharts(extent) {
                     var sampleType_subGroups = makeSubGroup(sampleType_sampleData, eval('Dashboard.Info.' + selectedGroup));
                     btData = btData.concat(sampleType_subGroups.map(function (g) {
                         return {
+                            type: 'bar',
+                            yAxis: 1,
                             key: selectedGroup + ' ' + g.key,
                             values: g.values.map(function (val, i) {
                                 return {x: xAxisData[g.originalPos[i]], y: val }
@@ -693,17 +717,6 @@ function drawVisibleCharts(extent) {
                         }
                     }));
 
-                    var negative_test_data = new d3.range(0, 3).map(function (d, i) {
-                        return {
-                            key: 'Stream ' + i,
-                            values: new d3.range(0, 11).map(function (f, j) {
-                                return {
-                                    y: 10 + Math.random() * 100 * (Math.floor(Math.random() * 100) % 2 ? 1 : -1),
-                                    x: j
-                                }
-                            })
-                        };
-                    });
 
                     //console.log(btData, negative_test_data)
 //                defaultChartConfig("chart2", btData, {
@@ -719,11 +732,11 @@ function drawVisibleCharts(extent) {
                  *   filter orderAll only between brush extent i.e. [2, 30]
                  */
                 if (extent) {
-                    btData.map(function (d) {
-                        d.values = d.values.filter(function (d) {
+                    btData = btData.map(function (s) {
+                        s.values = s.values.filter(function (d) {
                             return extent[0] <= d.x && d.x <= extent[1];
                         });
-                        return d;
+                        return s;
                     });
                 }
                 btData = btData.map(function (g) {
@@ -733,18 +746,23 @@ function drawVisibleCharts(extent) {
                     return g;
                 });
 
+                var minMax = getMinMax(btData);
                 drawGraph(btData, chartSetting, {
-                    margin: {bottom: 100},
-                    transitionDuration: 0,
-                    delay: 50,
-                    groupSpacing: 0.2,
-                    reduceXTicks: false
+                    //barColor: nv.utils.defaultColor(),
+                    transitionDuration: 50,
+                    delay: 5,
+                    showControls: false,
+                    //color: nv.utils.defaultColor(),
+                    //forceX: [0, 211],
+                    groupSpacing: 0,
+                    reduceXTicks: true
                 });
                 return
             } else if (chartSetting.visible && chartSetting.ChartType == "Scatter") {
                 var btData;
-                if (chartSetting.Yfield == null && chartSetting.Xfield == null) {  // e.g. PCA chart is special case Scatter plot
+                if (chartSetting.Yvalues != null && chartSetting.Xvalues != null) {  // e.g. PCA chart is special case Scatter plot
                     var groupByType = Dashboard.Info.Type;
+                    var order = Dashboard.Info.Order;
                     var pca_sampleTypeGroups = makeGroup(chartSetting.Yvalues, groupByType);
 
                     var pca_groups_excluding_sample = pca_sampleTypeGroups.filter(function (itm, i) {
@@ -755,6 +773,7 @@ function drawVisibleCharts(extent) {
                         return {
                             key: g.key,
                             color: g.key == 'QCsample' ? 'black' : '',
+                            originalPos: g.originalPos,
                             values: g.values.map(function (val, i) {
                                 return {x: chartSetting.Xvalues[g.originalPos[i]], y: val }
                             })
@@ -770,22 +789,43 @@ function drawVisibleCharts(extent) {
                     btData = btData.concat(pca_sampleType_subGroups.map(function (g) {
                         return {
                             key: selectedGroup + ' ' + g.key,
+                            originalPos: g.originalPos,
                             values: g.values.map(function (val, i) {
                                 return {x: chartSetting.Xvalues[g.originalPos[i]], y: val }
                             })
                         }
                     }));
 
+                    /*
+                     *  pre-filter the final data before actual drawing
+                     *   filter orderAll only between brush extent i.e. [2, 30]
+                     */
+                    if (extent) {
+                        btData = btData.map(function (s) {
+                            s.values = s.values.filter(function (d, i) {
+                                return extent[0] <= order[s.originalPos[i]] && order[s.originalPos[i]] <= extent[1];
+                            });
+                            return s;
+                        });
+                    }
+
+                    btData = btData.map(function (g) {
+                        g.values = g.values.filter(function (itm) {
+                            return (itm.y != null && itm.x != null)
+                        })
+                        return g;
+                    });
+
                     var minMax = getMinMax(btData);
                     drawGraph(btData, chartSetting, {
-                        showDistX: false,
-                        showDistY: false,
-                        useVoronoi: false,
+                        showDistX: true,
+                        showDistY: true,
+                        useVoronoi: true,
                         color: d3.scale.category20().range(),
                         sizeDomain: [100, 100],
-                        sizeRange: [100, 100],
-                        forceY: [(minMax.minY - minMax.minY * .1 ), (minMax.maxY + minMax.maxY * .1 )],
-                        forceX: [minMax.minX , minMax.maxX]
+                        sizeRange: [100, 100]
+                        //forceY: [(minMax.minY - minMax.minY * .1 ), (minMax.maxY + minMax.maxY * .1 )],
+                        //forceX: [minMax.minX , minMax.maxX]
 
                     }, subscribeScatterPlotEvent);
                     return
@@ -830,11 +870,11 @@ function drawVisibleCharts(extent) {
                  *   filter orderAll only between brush extent i.e. [2, 30]
                  */
                 if (extent) {
-                    btData.map(function (d) {
-                        d.values = d.values.filter(function (d) {
+                    btData = btData.map(function (s) {
+                        s.values = s.values.filter(function (d) {
                             return extent[0] <= d.x && d.x <= extent[1];
                         });
-                        return d;
+                        return s;
                     });
                 }
 
@@ -848,32 +888,49 @@ function drawVisibleCharts(extent) {
                 drawGraph(btData, chartSetting, {
                     showDistX: false,
                     showDistY: false,
-                    useVoronoi: false,
+                    useVoronoi: true,
                     color: d3.scale.category20().range(),
                     sizeDomain: [100, 100],
                     sizeRange: [100, 100],
-                    forceY: [(minMax.minY - minMax.minY * .1 ), (minMax.maxY + minMax.maxY * .1 )],
+                    //forceY: [(minMax.minY - minMax.minY * .1 ), (minMax.maxY + minMax.maxY * .1 )],
                     forceX: [minMax.minX , minMax.maxX]
                 }, subscribeScatterPlotEvent);
             } else if (chartSetting.visible && chartSetting.ChartType == "Multi") {
                 var btData = [];
                 var respQCtrend, respSetYfield = [], respSetYfield2 = [];
-                //Ydata might be an array
-                if (chartSetting.Yfield && chartSetting.Ydata instanceof Array) {
-                    chartSetting.Ydata.forEach(function (d, i) {
+                //console.log("chartSetting?", chartSetting)
+                if (chartSetting.Yfield) {
+                    //check Ydata might be an array
+                    if (chartSetting.Ydata instanceof Array) {
+                        chartSetting.Ydata.forEach(function (d, i) {
+                            respSetYfield.push({
+                                type: chartSetting.SubType[i],
+                                values: filterAnalyteResponse(filterAnalyte(Dashboard, chartSetting.Yfield), selectedMetabolite, d)
+                            });
+                        })
+                    } else if (chartSetting.Ydata) {
                         respSetYfield.push({
-                            type: chartSetting.SubType[i],
-                            values: filterAnalyteResponse(filterAnalyte(Dashboard, chartSetting.Yfield), selectedMetabolite, d)
+                            type: chartSetting.SubType[0],
+                            values: filterAnalyteResponse(filterAnalyte(Dashboard, chartSetting.Yfield), selectedMetabolite, chartSetting.Ydata)
                         });
-                    })
+                    }
+
                 }
-                if (chartSetting.Yfield2 && chartSetting.Ydata2 instanceof Array) {
-                    chartSetting.Ydata2.forEach(function (d, i) {
+                if (chartSetting.Yfield2) {
+                    if (chartSetting.Ydata2 instanceof Array) {
+                        chartSetting.Ydata2.forEach(function (d, i) {
+                            respSetYfield2.push({
+                                type: chartSetting.SubType[i],
+                                values: filterAnalyteResponse(filterAnalyte(Dashboard, chartSetting.Yfield2), selectedMetabolite, d)
+                            });
+                        })
+                    } else if (chartSetting.Ydata2) {
                         respSetYfield2.push({
-                            type: chartSetting.SubType[i],
-                            values: filterAnalyteResponse(filterAnalyte(Dashboard, chartSetting.Yfield2), selectedMetabolite, d)
+                            type: chartSetting.SubType[1],
+                            values: filterAnalyteResponse(filterAnalyte(Dashboard, chartSetting.Yfield2), selectedMetabolite, chartSetting.Ydata2)
                         });
-                    })
+                    }
+
                 }
 
                 var groupByType = eval('Dashboard.' + chartSetting.Xfield + '.Type');
@@ -914,14 +971,12 @@ function drawVisibleCharts(extent) {
                             }));
                             return respSet;
                         } else {
-                            var result = respSet.values.map(function (g, i) {
-                                return
-                            });
+                            var k = chartSetting.Yfield.concat("-".concat(chartSetting.Ydata instanceof Array ? chartSetting.Ydata[1] : chartSetting.Ydata));
                             respSet.values = [
                                 {
                                     type: respSet.type.toLowerCase(),
                                     yAxis: 1,
-                                    key: 'Trend',
+                                    key: k,
                                     values: respSet.values.map(function (g, i) {
                                         return    {x: xAxisData[i], y: g }
                                     })
@@ -931,13 +986,82 @@ function drawVisibleCharts(extent) {
                         }
                     });
                 }
-                //console.log(respSetYfield, respSetYfield2);
+                if (respSetYfield2.length > 0) {
+                    respSetYfield2 = respSetYfield2.map(function (respSet) {
+                        if (respSet.type.toLowerCase() != 'line') {  // in case of line no grouping
+                            var sampleTypeGroups = makeGroup(respSet.values, groupByType);
+                            var groups_excluding_sample = sampleTypeGroups.filter(function (itm, i) {
+                                return itm.key != chartSetting.sampleType;
+                            });
+                            var result = groups_excluding_sample.map(function (g) {
+                                return {
+                                    type: respSet.type.toLowerCase(),
+                                    yAxis: 2,
+                                    key: g.key,
+                                    color: g.key == 'QCsample' ? 'black' : undefined,
+                                    values: g.values.map(function (val, i) {
+                                        return {x: xAxisData[g.originalPos[i]], y: val }
+                                    })
+                                }
+                            });
+
+                            var sampleType_sampleData = sampleTypeGroups.filter(function (itm, i) {
+                                return itm.key == chartSetting.sampleType;
+                            })[0];
+                            var sampleType_subGroups = makeSubGroup(sampleType_sampleData, eval('Dashboard.Info.' + selectedGroup));
+                            respSet.values = result.concat(sampleType_subGroups.map(function (g) {
+                                return {
+                                    type: respSet.type.toLowerCase(),
+                                    yAxis: 2,
+                                    key: selectedGroup + ' ' + g.key,
+                                    values: g.values.map(function (val, i) {
+                                        return {x: xAxisData[g.originalPos[i]], y: val }
+                                    })
+                                }
+                            }));
+                            return respSet;
+                        } else {
+                            var k = chartSetting.Yfield2.concat("-".concat(chartSetting.Ydata2 instanceof Array ? chartSetting.Ydata2[1] : chartSetting.Ydata2));
+                            respSet.values = [
+                                {
+                                    type: respSet.type.toLowerCase(),
+                                    yAxis: 2,
+                                    key: k,
+                                    values: respSet.values.map(function (g, i) {
+                                        return    {x: xAxisData[i], y: g }
+                                    })
+                                }
+                            ]
+                            return respSet;
+                        }
+                    });
+                }
+                //console.log(respSetYfield2);
                 respSetYfield.map(function (respSet) {
                     btData = btData.concat(respSet.values.map(function (val) {
                         return val;
                     }))
                 })
-                console.log(btData)
+                respSetYfield2.map(function (respSet) {
+                    btData = btData.concat(respSet.values.map(function (val) {
+                        return val;
+                    }))
+                })
+                //console.log(btData)
+
+                /*
+                 *  pre-filter the final data before actual drawing
+                 *   filter orderAll only between brush extent i.e. [2, 30]
+                 */
+                if (extent) {
+                    btData = btData.map(function (s) {
+                        s.values = s.values.filter(function (d) {
+                            return extent[0] <= d.x && d.x <= extent[1];
+                        });
+                        return s;
+                    });
+                }
+                // filter all NULL
                 btData = btData.map(function (g) {
                     g.values = g.values.filter(function (itm, i) {
                         return itm.y != null
@@ -947,12 +1071,12 @@ function drawVisibleCharts(extent) {
                 if (btData.length > 0) {
                     var minMax = getMinMax(btData);
                     drawGraph(btData, chartSetting, {
+                        margin: {top: 30, right: (respSetYfield2.length > 0) ? 75 : 20, bottom: 50, left: 75},
                         showDistX: false,
                         showDistY: false,
-                        useVoronoi: false,
+                        useVoronoi: true,
                         color: d3.scale.category20().range(),
-                        margin: {top: 30, right: 60, bottom: 50, left: 70},
-                        forceY1: [(minMax.minY - minMax.minY * .1 ), (minMax.maxY + minMax.maxY * .1 )],
+                        //forceY: [(minMax.minY - minMax.minY * .1 ), (minMax.maxY + minMax.maxY * .1 )],
                         forceX: [minMax.minX , minMax.maxX]
                     });
                 }
@@ -968,6 +1092,79 @@ function drawVisibleCharts(extent) {
     )
     ;
 
+}
+
+function drawLegend() {
+    var selectedMetabolite = $('#compound').val();
+    var selectedGroup = Dashboard.PlotInfo.Group[0];
+    var metabolite = Dashboard.Metabolite[selectedMetabolite];
+    var allRespVal = metabolite.RT;
+    var groupByType = Dashboard.Info.Type;
+    var sampleType = 'Sample';
+    var sampleTypeGroups = makeGroup(allRespVal, groupByType);
+
+    var groups_excluding_sample = sampleTypeGroups.filter(function (itm, i) {
+        return itm.key != sampleType;
+    });
+
+    var result = groups_excluding_sample.map(function (g) {
+        return {
+            key: g.key
+        }
+    });
+
+    var sampleType_sampleData = sampleTypeGroups.filter(function (itm, i) {
+        return itm.key == sampleType;
+    })[0];
+
+    var sampleType_subGroups = makeSubGroup(sampleType_sampleData, eval('Dashboard.Info.' + selectedGroup));
+
+    result = result.concat(sampleType_subGroups.map(function (g) {
+        return {
+            key: selectedGroup + ' ' + g.key
+        }
+    }));
+
+    nv.addGraph({
+        generate: function () {
+            var width = 500,
+                height = 20;
+
+            var chart = nv.models.legend()
+                .width(width)
+                .height(height);
+
+            chart.dispatch.on('legendClick', function (d, i) {
+                console.log(d, i)
+            });
+            chart.dispatch.on('stateChange', function (d) {
+                console.log('stateChange?', d);
+//                setTimeout(function () {
+//                    updateStates(_)
+//                   // updateStates(_)
+//                }, 100);
+            });
+
+            d3.select('#mainLegend')
+                .attr('width', width)
+                .attr('height', height)
+                .datum(result)
+                .call(chart);
+
+            mainLegend = chart
+            return chart;
+        },
+        callback: function (graph) {
+            var chart = graph,
+                height = chart.height(),
+                width = chart.width();
+
+            d3.select('#mainLegend')
+                .attr('width', width)
+                .attr('height', height)
+                .call(chart)
+        }
+    });
 }
 
 function drawISAreaMultiChart() {
